@@ -105,6 +105,7 @@ for(tt in 0:7) {
 			for (yy in classifTargets) {
 				res = testClassif(rev,yy,weighted,tt)
 				allRes=rbind(allRes,res)
+				browser()
 			}
 		}
 	}

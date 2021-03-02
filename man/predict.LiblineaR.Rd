@@ -4,16 +4,19 @@
 \alias{predict.LiblineaR}
 \title{Predictions with LiblineaR model}
 \usage{
-\method{predict}{LiblineaR}(object, newx, proba = FALSE,
-  decisionValues = FALSE, ...)
+\method{predict}{LiblineaR}(object, newx, proba = FALSE, decisionValues = FALSE, ...)
 }
 \arguments{
 \item{object}{Object of class \code{"LiblineaR"}, created by
 \code{LiblineaR}.}
 
 \item{newx}{An n x p matrix containing the new input data. A vector will be
-transformed to a n x 1 matrix. A sparse matrix (from SparseM package) will
-also work.}
+transformed to a n x 1 matrix. Sparse matrices of class matrix.csr from 
+package SparseM or sparse matrices of class dgCMatrix or dgRMatrix from
+package Matrix are also accepted. Note that C code at the core of LiblineaR
+package corresponds to a row-based sparse format. Hence, dgCMatrix inputs
+are first transformed into dgRMatrix format, which requires small extra
+computation time.}
 
 \item{proba}{Logical indicating whether class probabilities should be
 computed and returned. Only possible if the model was fitted with
@@ -48,24 +51,23 @@ If the data on which the model has been fitted have been centered
   \code{newx} data as well, with the scale and center values of the training
   data.
 }
-\author{
-Thibault Helleputte \email{thibault.helleputte@dnalytics.com} and\cr
-  Pierre Gramme \email{pierre.gramme@dnalytics.com} and\cr
-  Jerome Paul \email{jerome.paul@dnalytics.com}.\cr 
-  Based on C/C++-code by Chih-Chung Chang and Chih-Jen Lin
-}
 \references{
 \itemize{
 \item 
-For more information on 'LIBLINEAR' itself, refer to:\cr
+For more information on LIBLINEAR itself, refer to:\cr
 R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and C.-J. Lin.\cr
 \emph{LIBLINEAR: A Library for Large Linear Classification,}\cr
 Journal of Machine Learning Research 9(2008), 1871-1874.\cr
-\url{http://www.csie.ntu.edu.tw/~cjlin/liblinear}
+\url{https://www.csie.ntu.edu.tw/~cjlin/liblinear/}
 }
 }
 \seealso{
 \code{\link{LiblineaR}}
+}
+\author{
+Thibault Helleputte \email{thibault.helleputte@dnalytics.com} and\cr
+  Jerome Paul \email{jerome.paul@dnalytics.com} and Pierre Gramme.\cr
+  Based on C/C++-code by Chih-Chung Chang and Chih-Jen Lin
 }
 \keyword{classes}
 \keyword{classif}
@@ -73,4 +75,3 @@ Journal of Machine Learning Research 9(2008), 1871-1874.\cr
 \keyword{multivariate}
 \keyword{optimize}
 \keyword{regression}
-

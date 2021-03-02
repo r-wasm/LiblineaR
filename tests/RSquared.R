@@ -7,3 +7,4 @@ RSquared<-function(pred,true){
 	ss_res = sum((true-pred) ^ 2)
   return(1 - ss_res/ss_tot)
 }
+

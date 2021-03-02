@@ -1,5 +1,5 @@
 ### Documentation ####
-#' Linear predictive models estimation based on the 'LIBLINEAR' C/C++ Library.
+#' Linear predictive models estimation based on the LIBLINEAR C/C++ Library.
 #' 
 #' @description
 #' \code{LiblineaR} allows the estimation of predictive linear models for 
@@ -8,17 +8,21 @@
 #' L2-regularized L1-loss support vector classification and multi-class support 
 #' vector classification. It also supports L2-regularized support vector regression 
 #' (with L1- or L2-loss). The estimation of the models is particularly fast as 
-#' compared to other libraries. The implementation is based on the 'LIBLINEAR' C/C++ 
+#' compared to other libraries. The implementation is based on the LIBLINEAR C/C++ 
 #' library for machine learning.
 #' 
 #' @details
-#' For details for the implementation of 'LIBLINEAR', see the README file of the
-#' original c/c++ 'LIBLINEAR' library at
-#' \url{http://www.csie.ntu.edu.tw/~cjlin/liblinear}.
+#' For details for the implementation of LIBLINEAR, see the README file of the
+#' original c/c++ LIBLINEAR library at
+#' \url{https://www.csie.ntu.edu.tw/~cjlin/liblinear/}.
 #' 
 #' @param data 	a nxp data matrix. Each row stands for an example (sample,
-#'   point) and each column stands for a dimension (feature, variable). A sparse
-#'   matrix (from SparseM package) will also work.
+#'   point) and each column stands for a dimension (feature, variable). Sparse
+#'   matrices of class matrix.csr from package SparseM or sparse matrices of
+#'   class dgCMatrix or dgRMatrix from package Matrix are also accepted. Note 
+#'   that C code at the core of LiblineaR package corresponds to a row-based 
+#'   sparse format. Hence, dgCMatrix inputs are first transformed into dgRMatrix
+#'   format, which requires small extra computation time.
 #' @param target a response vector for prediction tasks with one value for 
 #'   each of the n rows of \code{data}. For classification, the values 
 #'   correspond to class labels and can be a 1xn matrix, a simple vector or a 
@@ -59,7 +63,7 @@
 #'   this constant is provided by the \code{heuristicC} function of this
 #'   package.
 #' @param epsilon set tolerance of termination criterion for optimization.
-#'   If \code{NULL}, the 'LIBLINEAR' defaults are used, which are:
+#'   If \code{NULL}, the LIBLINEAR defaults are used, which are:
 #'   \describe{
 #'     \item{if \code{type} is 0, 2, 5 or 6}{\code{epsilon}=0.01}
 #'     \item{if \code{type} is 1, 3, 4, 7, 12 or 13}{\code{epsilon}=0.1}
@@ -119,16 +123,15 @@
 #' @references
 #' 	\itemize{
 #' \item 
-#' For more information on 'LIBLINEAR' itself, refer to:\cr
+#' For more information on LIBLINEAR itself, refer to:\cr
 #' R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and C.-J. Lin.\cr
 #' \emph{LIBLINEAR: A Library for Large Linear Classification,}\cr
 #' Journal of Machine Learning Research 9(2008), 1871-1874.\cr
-#' \url{http://www.csie.ntu.edu.tw/~cjlin/liblinear}
+#' \url{https://www.csie.ntu.edu.tw/~cjlin/liblinear/}
 #' }
 #' 
 #' @author Thibault Helleputte \email{thibault.helleputte@@dnalytics.com} and\cr
-#'   Pierre Gramme \email{pierre.gramme@@dnalytics.com} and\cr
-#'   Jerome Paul \email{jerome.paul@@dnalytics.com}.\cr
+#'   Jerome Paul \email{jerome.paul@@dnalytics.com} and Pierre Gramme.\cr
 #'   Based on C/C++-code by Chih-Chung Chang and Chih-Jen Lin
 #' 
 #' @note Classification models usually perform better if each dimension of the data is first centered and scaled.
@@ -196,13 +199,38 @@
 #' 
 #' #' #############################################
 #' 
-#' # Example of the use of a sparse matrix:
+#' # Example of the use of a sparse matrix of class matrix.csr :
 #' 
 #' if(require(SparseM)){
 #' 
 #'  # Sparsifying the iris dataset:
 #'  iS=apply(iris[,1:4],2,function(a){a[a<quantile(a,probs=c(0.25))]=0;return(a)})
 #'  irisSparse<-as.matrix.csr(iS)
+#' 
+#'  # Applying a similar methodology as above:
+#'  xTrain=irisSparse[train,]
+#'  xTest=irisSparse[-train,]
+#' 
+#'  # Re-train best model with best cost value.
+#'  m=LiblineaR(data=xTrain,target=yTrain,type=bestType,cost=bestCost,bias=1,verbose=FALSE)
+#' 
+#'  # Make prediction
+#'  p=predict(m,xTest,proba=pr,decisionValues=TRUE)
+#' 
+#'  # Display confusion matrix
+#'  res=table(p$predictions,yTest)
+#'  print(res)
+#' }
+#' 
+#' #' #############################################
+#' 
+#' # Example of the use of a sparse matrix of class dgCMatrix :
+#' 
+#' if(require(Matrix)){
+#' 
+#'  # Sparsifying the iris dataset:
+#'  iS=apply(iris[,1:4],2,function(a){a[a<quantile(a,probs=c(0.25))]=0;return(a)})
+#'  irisSparse<-as(iS,"sparseMatrix")
 #' 
 #'  # Applying a similar methodology as above:
 #'  xTrain=irisSparse[train,]
@@ -253,20 +281,38 @@
 #' @keywords classif regression multivariate models optimize classes
 #' 
 #' @useDynLib LiblineaR trainLinear
+#' 
+#' @importFrom methods as 
+#' 
 #' @export
 
 ### Implementation ####
 LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bias=1, wi=NULL, cross=0, verbose=FALSE, findC=FALSE, useInitC=TRUE, ...) {
 	# <Arg preparation>
-  
+  sparse=FALSE
+  sparse2=FALSE
   if(sparse <- inherits(data, "matrix.csr")){
     if(requireNamespace("SparseM",quietly=TRUE)){
-  		# trying to handle the sparse martix case
+  		# trying to handle the sparse matrix case with SparseM package
 	  	data = SparseM::t(SparseM::t(data)) # make sure column index are sorted
 		  n = data@dimension[1]
 		  p = data@dimension[2]
     } else {
-      stop("newx inherits from 'matrix.csr', but 'SparseM' package is not available. Cannot proceed further. Use non-sparse matrix or install SparseM.")
+      stop("data inherits from 'matrix.csr', but 'SparseM' package is not available. Cannot proceed further. You could either use non-sparse matrix, install SparseM package or use sparse matrices based on Matrix package, also supported by LiblineaR.")
+    }
+  } else if(sparse2 <- (inherits(data, "dgCMatrix") | inherits(data,"dgRMatrix"))) {
+    if(requireNamespace("Matrix",quietly=TRUE)){
+      # trying to handle the sparse matrix case with Matrix package
+      if(inherits(data,"dgCMatrix")){
+        # Transform column-based sparse matrix format of class dgCMatrix into 
+        # row-based sparse matrix format of class dgRMatrix.
+        data<-as(as(data,"matrix"),"dgRMatrix")
+      }
+      data = Matrix::t(Matrix::t(data)) # make sure column index are sorted
+      n = dim(data)[1]
+      p = dim(data)[2]
+    } else {
+      stop("data inherits from 'dgCMatrix' or 'dgRMatrix', but 'Matrix' package is not available. Cannot proceed further. You could either use non-sparse matrix, install Matrix package or use sparse matrices based on SparseM package, also supported by LiblineaR.")
     }
 	} else {
 		# Nb samples
@@ -274,7 +320,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 		# Nb features
 		p=dim(data)[2]
 	}
-
+  
 	# Backwards compatibility after renaming 'labels' to 'target'
 	cc = match.call()
 	if ("labels" %in% names(cc)) {
@@ -286,7 +332,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 		}
 	}
 	rm(cc)
-	
+
 	# Bias
 	b = if(bias > 0) bias else -1 # to ensure backward compatibility with boolean
 	
@@ -307,7 +353,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 	
 	# Epsilon
 	if(is.null(epsilon) || epsilon<0){
-		# Will use 'LIBLINEAR' default value for epsilon
+		# Will use LIBLINEAR default value for epsilon
 		epsilon = -1
 	}
 
@@ -319,6 +365,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 			warning("No value provided for svr_eps. Using default of 0.1")
 	}
 	
+
 	# Target
 	if(!is.null(dim(target))) {
 		if(identical(dim(target), c(n,1L)))
@@ -391,14 +438,16 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 	ret <- .C("trainLinear",
 			as.double(W_ret),
 			as.integer(labels_ret),
-			as.double(if(sparse) data@ra else t(data)),
+			as.double(if(sparse){data@ra}else if(sparse2){data@x}else{t(data)}),
 			as.double(yC),
 			as.integer(n),
 			as.integer(p),
-			# sparse index info
-			as.integer(sparse),
-			as.integer(if(sparse) data@ia else 0),
-			as.integer(if(sparse) data@ja else 0),
+			# sparse index info. 
+			# If sparse or sparse2 is TRUE, then the following expression will return 1
+			# And, no need for the trainLinear C function to be able to distinguish between sparse and sparse2 as we send same info.
+			as.integer(sparse+sparse2),
+			as.integer(if(sparse){data@ia}else if(sparse2){data@p+1}else{0}), 
+			as.integer(if(sparse){data@ja}else if(sparse2){data@j+1}else{0}),
 
 			as.double(b),
 			as.integer(type),
@@ -449,3 +498,4 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 		return(ret[[1]][1])
 	}
 }
+

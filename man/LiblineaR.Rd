@@ -2,16 +2,32 @@
 % Please edit documentation in R/LiblineaR.R
 \name{LiblineaR}
 \alias{LiblineaR}
-\title{Linear predictive models estimation based on the 'LIBLINEAR' C/C++ Library.}
+\title{Linear predictive models estimation based on the LIBLINEAR C/C++ Library.}
 \usage{
-LiblineaR(data, target, type = 0, cost = 1, epsilon = 0.01,
-  svr_eps = NULL, bias = 1, wi = NULL, cross = 0, verbose = FALSE,
-  findC = FALSE, useInitC = TRUE, ...)
+LiblineaR(
+  data,
+  target,
+  type = 0,
+  cost = 1,
+  epsilon = 0.01,
+  svr_eps = NULL,
+  bias = 1,
+  wi = NULL,
+  cross = 0,
+  verbose = FALSE,
+  findC = FALSE,
+  useInitC = TRUE,
+  ...
+)
 }
 \arguments{
 \item{data}{a nxp data matrix. Each row stands for an example (sample,
-point) and each column stands for a dimension (feature, variable). A sparse
-matrix (from SparseM package) will also work.}
+point) and each column stands for a dimension (feature, variable). Sparse
+matrices of class matrix.csr from package SparseM or sparse matrices of
+class dgCMatrix or dgRMatrix from package Matrix are also accepted. Note 
+that C code at the core of LiblineaR package corresponds to a row-based 
+sparse format. Hence, dgCMatrix inputs are first transformed into dgRMatrix
+format, which requires small extra computation time.}
 
 \item{target}{a response vector for prediction tasks with one value for 
 each of the n rows of \code{data}. For classification, the values 
@@ -55,7 +71,7 @@ this constant is provided by the \code{heuristicC} function of this
 package.}
 
 \item{epsilon}{set tolerance of termination criterion for optimization.
-If \code{NULL}, the 'LIBLINEAR' defaults are used, which are:
+If \code{NULL}, the LIBLINEAR defaults are used, which are:
 \describe{
   \item{if \code{type} is 0, 2, 5 or 6}{\code{epsilon}=0.01}
   \item{if \code{type} is 1, 3, 4, 7, 12 or 13}{\code{epsilon}=0.1}
@@ -127,13 +143,13 @@ regression, L1- or L2-regularized L2-loss support vector classification,
 L2-regularized L1-loss support vector classification and multi-class support 
 vector classification. It also supports L2-regularized support vector regression 
 (with L1- or L2-loss). The estimation of the models is particularly fast as 
-compared to other libraries. The implementation is based on the 'LIBLINEAR' C/C++ 
+compared to other libraries. The implementation is based on the LIBLINEAR C/C++ 
 library for machine learning.
 }
 \details{
-For details for the implementation of 'LIBLINEAR', see the README file of the
-original c/c++ 'LIBLINEAR' library at
-\url{http://www.csie.ntu.edu.tw/~cjlin/liblinear}.
+For details for the implementation of LIBLINEAR, see the README file of the
+original c/c++ LIBLINEAR library at
+\url{https://www.csie.ntu.edu.tw/~cjlin/liblinear/}.
 }
 \note{
 Classification models usually perform better if each dimension of the data is first centered and scaled.
@@ -164,7 +180,7 @@ bestType=NA
 for(ty in tryTypes){
 	for(co in tryCosts){
 		acc=LiblineaR(data=s,target=yTrain,type=ty,cost=co,bias=1,cross=5,verbose=FALSE)
-		cat("Results for C=",co," : ",acc," accuracy.\\n",sep="")
+		cat("Results for C=",co," : ",acc," accuracy.\n",sep="")
 		if(acc>bestAcc){
 			bestCost=co
 			bestAcc=acc
@@ -173,9 +189,9 @@ for(ty in tryTypes){
 	}
 }
 
-cat("Best model type is:",bestType,"\\n")
-cat("Best cost is:",bestCost,"\\n")
-cat("Best accuracy is:",bestAcc,"\\n")
+cat("Best model type is:",bestType,"\n")
+cat("Best cost is:",bestCost,"\n")
+cat("Best accuracy is:",bestAcc,"\n")
 
 # Re-train best model with best cost value.
 m=LiblineaR(data=s,target=yTrain,type=bestType,cost=bestCost,bias=1,verbose=FALSE)
@@ -199,13 +215,38 @@ print(BCR)
 
 #' #############################################
 
-# Example of the use of a sparse matrix:
+# Example of the use of a sparse matrix of class matrix.csr :
 
 if(require(SparseM)){
 
  # Sparsifying the iris dataset:
  iS=apply(iris[,1:4],2,function(a){a[a<quantile(a,probs=c(0.25))]=0;return(a)})
  irisSparse<-as.matrix.csr(iS)
+
+ # Applying a similar methodology as above:
+ xTrain=irisSparse[train,]
+ xTest=irisSparse[-train,]
+
+ # Re-train best model with best cost value.
+ m=LiblineaR(data=xTrain,target=yTrain,type=bestType,cost=bestCost,bias=1,verbose=FALSE)
+
+ # Make prediction
+ p=predict(m,xTest,proba=pr,decisionValues=TRUE)
+
+ # Display confusion matrix
+ res=table(p$predictions,yTest)
+ print(res)
+}
+
+#' #############################################
+
+# Example of the use of a sparse matrix of class dgCMatrix :
+
+if(require(Matrix)){
+
+ # Sparsifying the iris dataset:
+ iS=apply(iris[,1:4],2,function(a){a[a<quantile(a,probs=c(0.25))]=0;return(a)})
+ irisSparse<-as(iS,"sparseMatrix")
 
  # Applying a similar methodology as above:
  xTrain=irisSparse[train,]
@@ -254,24 +295,23 @@ print(summary(yTest-pred))
 
 
 }
-\author{
-Thibault Helleputte \email{thibault.helleputte@dnalytics.com} and\cr
-  Pierre Gramme \email{pierre.gramme@dnalytics.com} and\cr
-  Jerome Paul \email{jerome.paul@dnalytics.com}.\cr
-  Based on C/C++-code by Chih-Chung Chang and Chih-Jen Lin
-}
 \references{
 \itemize{
 \item 
-For more information on 'LIBLINEAR' itself, refer to:\cr
+For more information on LIBLINEAR itself, refer to:\cr
 R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and C.-J. Lin.\cr
 \emph{LIBLINEAR: A Library for Large Linear Classification,}\cr
 Journal of Machine Learning Research 9(2008), 1871-1874.\cr
-\url{http://www.csie.ntu.edu.tw/~cjlin/liblinear}
+\url{https://www.csie.ntu.edu.tw/~cjlin/liblinear/}
 }
 }
 \seealso{
 \code{\link{predict.LiblineaR}}, \code{\link{heuristicC}}
+}
+\author{
+Thibault Helleputte \email{thibault.helleputte@dnalytics.com} and\cr
+  Jerome Paul \email{jerome.paul@dnalytics.com} and Pierre Gramme.\cr
+  Based on C/C++-code by Chih-Chung Chang and Chih-Jen Lin
 }
 \keyword{classes}
 \keyword{classif}
@@ -279,4 +319,3 @@ Journal of Machine Learning Research 9(2008), 1871-1874.\cr
 \keyword{multivariate}
 \keyword{optimize}
 \keyword{regression}
-

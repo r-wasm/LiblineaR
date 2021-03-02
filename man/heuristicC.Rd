@@ -63,9 +63,6 @@ BCR=mean(c(res[1,1]/sum(res[,1]),res[2,2]/sum(res[,2]),res[3,3]/sum(res[,3])))
 print(BCR)
 
 }
-\author{
-Thibault Helleputte \email{thibault.helleputte@dnalytics.com}
-}
 \references{
 \itemize{
 \item 
@@ -77,5 +74,7 @@ T. Joachims\cr
 \seealso{
 \code{\link{LiblineaR}}
 }
+\author{
+Thibault Helleputte \email{thibault.helleputte@dnalytics.com}
+}
 \keyword{classif}
-

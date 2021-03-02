@@ -69,14 +69,7 @@
 #' @export
 
 heuristicC<-function(data){
-	gram=data%*%t(data)
-	n=dim(gram)[1]
-	kxixi=matrix(ncol=n,nrow=1)
-	for(i in 1:n){
-		kxixi[1,i]=sqrt(gram[i,i])
-	}
-	m=mean(kxixi)
-	C=1/m
+  C=1/mean(sqrt(rowSums(data^2)))
 	return(C)
 }
 

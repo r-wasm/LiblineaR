@@ -7,8 +7,12 @@
 #' @param object Object of class \code{"LiblineaR"}, created by
 #'   \code{LiblineaR}.
 #' @param newx An n x p matrix containing the new input data. A vector will be
-#'   transformed to a n x 1 matrix. A sparse matrix (from SparseM package) will
-#'   also work.
+#'   transformed to a n x 1 matrix. Sparse matrices of class matrix.csr from 
+#'   package SparseM or sparse matrices of class dgCMatrix or dgRMatrix from
+#'   package Matrix are also accepted. Note that C code at the core of LiblineaR
+#'   package corresponds to a row-based sparse format. Hence, dgCMatrix inputs
+#'   are first transformed into dgRMatrix format, which requires small extra
+#'   computation time.
 #' @param proba Logical indicating whether class probabilities should be
 #'   computed and returned. Only possible if the model was fitted with
 #'   \code{type}=0, \code{type}=6 or \code{type}=7, i.e. a Logistic Regression.
@@ -32,16 +36,15 @@
 #' @references
 #' 	\itemize{
 #' \item 
-#' For more information on 'LIBLINEAR' itself, refer to:\cr
+#' For more information on LIBLINEAR itself, refer to:\cr
 #' R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and C.-J. Lin.\cr
 #' \emph{LIBLINEAR: A Library for Large Linear Classification,}\cr
 #' Journal of Machine Learning Research 9(2008), 1871-1874.\cr
-#' \url{http://www.csie.ntu.edu.tw/~cjlin/liblinear}
+#' \url{https://www.csie.ntu.edu.tw/~cjlin/liblinear/}
 #' }
 #' 
 #' @author Thibault Helleputte \email{thibault.helleputte@@dnalytics.com} and\cr
-#'   Pierre Gramme \email{pierre.gramme@@dnalytics.com} and\cr
-#'   Jerome Paul \email{jerome.paul@@dnalytics.com}.\cr 
+#'   Jerome Paul \email{jerome.paul@@dnalytics.com} and Pierre Gramme.\cr
 #'   Based on C/C++-code by Chih-Chung Chang and Chih-Jen Lin
 #' 
 #' @note If the data on which the model has been fitted have been centered
@@ -54,6 +57,9 @@
 #' @keywords classif regression multivariate models optimize classes
 #' 
 #' @useDynLib LiblineaR predictLinear
+#' 
+#' @importFrom methods as
+#' 
 #' @export
 
 ### Implementation ####
@@ -61,16 +67,31 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE,...)
     
     # <Arg preparation>
     
-    error=c()
+    sparse=FALSE
+    sparse2=FALSE
     
     if(sparse <- inherits(newx, "matrix.csr")){
         if(requireNamespace("SparseM",quietly=TRUE)){
-            # trying to handle the sparse martix case
+            # trying to handle the sparse matrix case with SparseM package
             newx = SparseM::t(SparseM::t(newx)) # make sure column index are sorted
             n = newx@dimension[1]
             p = newx@dimension[2]
         } else {
-            stop("newx inherits from 'matrix.csr', but 'SparseM' package is not available. Cannot proceed further. Use non-sparse matrix or install SparseM.")
+            stop("newx inherits from 'matrix.csr', but 'SparseM' package is not available. Cannot proceed further. You could either use non-sparse matrix, install SparseM package or use sparse matrices based on Matrix package, also supported by LiblineaR.")
+        }
+    } else if(sparse2 <- (inherits(newx, "dgCMatrix") | inherits(newx,"dgRMatrix"))) {
+        if(requireNamespace("Matrix",quietly=TRUE)){
+            # trying to handle the sparse matrix case with Matrix package
+            if(inherits(newx,"dgCMatrix")){
+                # Transform column-based sparse matrix format of class dgCMatrix into 
+                # row-based sparse matrix format of class dgRMatrix.
+                newx<-as(as(newx,"matrix"),"dgRMatrix")
+            }
+            newx = Matrix::t(Matrix::t(newx)) # make sure column index are sorted
+            n = dim(newx)[1]
+            p = dim(newx)[2]
+        } else {
+            stop("newx inherits from 'dgCMatrix' or 'dgRMatrix', but 'Matrix' package is not available. Cannot proceed further. You could either use non-sparse matrix, install Matrix package or use sparse matrices based on SparseM package, also supported by LiblineaR.")
         }
     } else {
         # Nb samples
@@ -81,7 +102,7 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE,...)
     
     # restrict features of newx to those used in model's W
     fNames = colnames(object$W)[colnames(object$W) != "Bias"]
-    if(is.null(colnames(newx))) { # also handles SparseM (matrix.csr) case which always returns NULL for colnames
+    if(is.null(colnames(newx))) { # also handles SparseM (matrix.csr) case which always returns NULL for colnames, and Matrix (dgCMatrix) case which might sometimes return NULL for colnames.
         if (p != length(fNames))
             stop("dims of 'test' and 'train' differ")
     } else {
@@ -146,7 +167,7 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE,...)
     ret <- .C(
         "predictLinear",
         as.double(Y),
-        as.double(if(sparse) newx@ra else t(newx)),
+        as.double(if(sparse){newx@ra}else if(sparse2){newx@x}else{t(newx)}),
         as.double(object$W),
         as.integer(decisionValues),
         as.double(t(DecisionValues)),
@@ -156,9 +177,11 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE,...)
         as.integer(p),
         as.integer(n),
         # sparse index info
-        as.integer(sparse),
-        as.integer(if(sparse) newx@ia else 0),
-        as.integer(if(sparse) newx@ja else 0),
+        # If sparse or sparse2 is TRUE, then the following expression will return 1
+        # And no need for the predictLinear C function to be able to distinguish between sparse and sparse2 as we send same info.
+        as.integer(sparse+sparse2),
+        as.integer(if(sparse){newx@ia}else if(sparse2){newx@p+1}else{0}), 
+        as.integer(if(sparse){newx@ja}else if(sparse2){newx@j+1}else{0}),
         
         as.double(b),
         as.integer(cn),
