@@ -16,8 +16,8 @@ void print_null(const char *s) {}
 
 void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose, int *findC, int *useInitC);
 void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, double *bi, int *verbose);
-double do_cross_validation();
-double do_find_parameter_C();
+double do_cross_validation(void);
+double do_find_parameter_C(void);
 
 struct feature_node *x_space;
 struct parameter param;
@@ -97,7 +97,7 @@ void trainLinear(double *W_ret, int* labels_ret, double *X, double *Y, int *nbSa
 	return;
 }
 
-double do_find_parameter_C()
+double do_find_parameter_C(void)
 {
 	double start_C, best_C, best_rate;
 	double max_C = 1024;
@@ -127,12 +127,11 @@ double do_find_parameter_C()
  * Author: Thibault Helleputte
  *
  */
-double do_cross_validation()
+double do_cross_validation(void)
 {
 	int i;
 	int total_correct = 0;
 	double total_error = 0;
-	double sumv = 0, sumy = 0, sumvv = 0, sumyy = 0, sumvy = 0;
 	double *target = Malloc(double, prob.l);
 	double res;
 	
@@ -141,6 +140,7 @@ double do_cross_validation()
 	   param.solver_type == L2R_L1LOSS_SVR_DUAL ||
 	   param.solver_type == L2R_L2LOSS_SVR_DUAL)
 	{
+		double sumv = 0, sumy = 0, sumvv = 0, sumyy = 0, sumvy = 0;
 		for(i=0;i<prob.l;i++)
 		{
 			double y = prob.y[i];

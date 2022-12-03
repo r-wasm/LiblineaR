@@ -51,19 +51,6 @@
 #' co=heuristicC(s)
 #' m=LiblineaR(data=s,labels=yTrain,type=t,cost=co,bias=TRUE,verbose=FALSE)
 #' 
-#' # Scale the test data
-#' s2=scale(xTest,attr(s,"scaled:center"),attr(s,"scaled:scale"))
-#' 
-#' # Make prediction
-#' p=predict(m,s2)
-#' 
-#' # Display confusion matrix
-#' res=table(p$predictions,yTest)
-#' print(res)
-#' 
-#' # Compute Balanced Classification Rate
-#' BCR=mean(c(res[1,1]/sum(res[,1]),res[2,2]/sum(res[,2]),res[3,3]/sum(res[,3])))
-#' print(BCR)
 #' 
 #' @keywords classif
 #' @export

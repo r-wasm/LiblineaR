@@ -105,7 +105,6 @@ for(tt in 0:7) {
 			for (yy in classifTargets) {
 				res = testClassif(rev,yy,weighted,tt)
 				allRes=rbind(allRes,res)
-				browser()
 			}
 		}
 	}
@@ -132,3 +131,52 @@ allRes$levelsOK=(allRes$target%in%c("y.char","y.double") | (allRes$yLev==allRes$
 # View(allRes)
 # library(reshape2)
 # print(dcast(allRes, dimOK + perfOK + levelsOK + sumOK + biasOK ~ .))
+
+#===============================================================================
+# Testing sparse matrices of various formats
+
+# Sparsifying the iris dataset:
+iS=apply(iris[,1:4],2,function(a){a[a<quantile(a,probs=c(0.25))]=0;return(a)})
+y=iris[,5]
+
+# Sparse matrix of class matrix.csr, matrix.csc, matrix.coo from SparseM package :
+if(require(SparseM)){
+  cat("Testing sparse matrices of class matrix.csr from package SparseM.\n")
+  irisSparse<-as.matrix.csr(iS)
+  acc=LiblineaR(data=irisSparse,target=y,type=0,cost=0.1,bias=1,verbose=FALSE,cross = 5)
+  cat("Accuracy:",acc,"\n",sep=" ")
+  
+  cat("Testing sparse matrices of class matrix.csc from package SparseM.\n")
+  irisSparse<-as.matrix.csc(iS)
+  acc=LiblineaR(data=irisSparse,target=y,type=0,cost=0.1,bias=1,verbose=FALSE,cross = 5)
+  cat("Accuracy:",acc,"\n",sep=" ")
+  
+  cat("Testing sparse matrices of class matrix.coo from package SparseM.\n")
+  irisSparse<-as.matrix.coo(iS)
+  acc=LiblineaR(data=irisSparse,target=y,type=0,cost=0.1,bias=1,verbose=FALSE,cross = 5)
+  cat("Accuracy:",acc,"\n",sep=" ")
+  
+}
+
+# Sparse matrix of class dgRMatrix, dgCMatrix, dgTMatrix from Matrix package :
+if(require(Matrix)){
+  cat("Testing sparse matrices of class dgCMatrix from package Matrix.\n")
+  irisSparse<-as(iS,"sparseMatrix")
+  acc=LiblineaR(data=irisSparse,target=y,type=0,cost=0.1,bias=1,verbose=FALSE,cross=5)
+  cat("Accuracy:",acc,"\n",sep=" ")
+  
+  cat("Testing sparse matrices of class dgRMatrix from package Matrix.\n")
+  irisSparse<-as(iS,"sparseMatrix")
+  irisSparse<-as(as(irisSparse,"matrix"),"dgRMatrix")
+  acc=LiblineaR(data=irisSparse,target=y,type=0,cost=0.1,bias=1,verbose=FALSE,cross=5)
+  cat("Accuracy:",acc,"\n",sep=" ")
+  
+  cat("Testing sparse matrices of class dgTMatrix from package Matrix.\n")
+  irisSparse<-as(iS,"sparseMatrix")
+  irisSparse<-as(as(irisSparse,"matrix"),"dgTMatrix")
+  acc=LiblineaR(data=irisSparse,target=y,type=0,cost=0.1,bias=1,verbose=FALSE,cross=5)
+  cat("Accuracy:",acc,"\n",sep=" ")
+  
+}
+#' 
+#' #############################################

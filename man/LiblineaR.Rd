@@ -23,11 +23,13 @@ LiblineaR(
 \arguments{
 \item{data}{a nxp data matrix. Each row stands for an example (sample,
 point) and each column stands for a dimension (feature, variable). Sparse
-matrices of class matrix.csr from package SparseM or sparse matrices of
-class dgCMatrix or dgRMatrix from package Matrix are also accepted. Note 
-that C code at the core of LiblineaR package corresponds to a row-based 
-sparse format. Hence, dgCMatrix inputs are first transformed into dgRMatrix
-format, which requires small extra computation time.}
+matrices of class matrix.csr, matrix.csc and matrix.coo from package 
+SparseM are accepted. Sparse matrices of class dgCMatrix, dgRMatrix or 
+dgTMatrix from package Matrix are also accepted. Note that C code at the 
+core of LiblineaR package corresponds to a row-based sparse format. Hence, 
+dgCMatrix, dgTMatrix, matrix.csc and matrix.csr inputs are first 
+transformed into matrix.csr or dgRMatrix formats, which requires small 
+extra computation time.}
 
 \item{target}{a response vector for prediction tasks with one value for 
 each of the n rows of \code{data}. For classification, the values 
@@ -171,8 +173,8 @@ yTest=y[-train]
 s=scale(xTrain,center=TRUE,scale=TRUE)
 
 # Find the best model with the best cost parameter via 10-fold cross-validations
-tryTypes=c(0:7)
-tryCosts=c(1000,1,0.001)
+tryTypes=c(1:6)
+tryCosts=c(1000,0.001)
 bestCost=NA
 bestAcc=0
 bestType=NA
@@ -233,9 +235,6 @@ if(require(SparseM)){
  # Make prediction
  p=predict(m,xTest,proba=pr,decisionValues=TRUE)
 
- # Display confusion matrix
- res=table(p$predictions,yTest)
- print(res)
 }
 
 #' #############################################
@@ -258,9 +257,6 @@ if(require(Matrix)){
  # Make prediction
  p=predict(m,xTest,proba=pr,decisionValues=TRUE)
 
- # Display confusion matrix
- res=table(p$predictions,yTest)
- print(res)
 }
 
 #############################################
@@ -276,7 +272,7 @@ yTest=iris[c(26:50,76:100,126:150),1]
 s=scale(xTrain,center=TRUE,scale=TRUE)
 
 # Estimate MSE in cross-vaidation on a train set
-MSECross=LiblineaR(data = s, target = yTrain, type = 13, cross = 10, svr_eps=.01)
+MSECross=LiblineaR(data = s, target = yTrain, type = 13, cross = 5, svr_eps=.01)
 
 # Build the model
 m=LiblineaR(data = s, target = yTrain, type = 13, cross=0, svr_eps=.01)

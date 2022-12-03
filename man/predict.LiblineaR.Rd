@@ -11,12 +11,13 @@
 \code{LiblineaR}.}
 
 \item{newx}{An n x p matrix containing the new input data. A vector will be
-transformed to a n x 1 matrix. Sparse matrices of class matrix.csr from 
-package SparseM or sparse matrices of class dgCMatrix or dgRMatrix from
-package Matrix are also accepted. Note that C code at the core of LiblineaR
-package corresponds to a row-based sparse format. Hence, dgCMatrix inputs
-are first transformed into dgRMatrix format, which requires small extra
-computation time.}
+transformed to a n x 1 matrix. Sparse matrices of class matrix.csr, 
+matrix.csc and matrix.coo from package SparseM are accepted. Sparse 
+matrices of class dgCMatrix, dgRMatrix or dgTMatrix from package Matrix are
+also accepted. Note that C code at the core of LiblineaR package 
+corresponds to a row-based sparse format. Hence, dgCMatrix, dgTMatrix, 
+matrix.csc and matrix.csr inputs are first transformed into matrix.csr or 
+dgRMatrix formats, which requires small extra computation time.}
 
 \item{proba}{Logical indicating whether class probabilities should be
 computed and returned. Only possible if the model was fitted with

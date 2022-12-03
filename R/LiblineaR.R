@@ -18,11 +18,13 @@
 #' 
 #' @param data 	a nxp data matrix. Each row stands for an example (sample,
 #'   point) and each column stands for a dimension (feature, variable). Sparse
-#'   matrices of class matrix.csr from package SparseM or sparse matrices of
-#'   class dgCMatrix or dgRMatrix from package Matrix are also accepted. Note 
-#'   that C code at the core of LiblineaR package corresponds to a row-based 
-#'   sparse format. Hence, dgCMatrix inputs are first transformed into dgRMatrix
-#'   format, which requires small extra computation time.
+#'   matrices of class matrix.csr, matrix.csc and matrix.coo from package 
+#'   SparseM are accepted. Sparse matrices of class dgCMatrix, dgRMatrix or 
+#'   dgTMatrix from package Matrix are also accepted. Note that C code at the 
+#'   core of LiblineaR package corresponds to a row-based sparse format. Hence, 
+#'   dgCMatrix, dgTMatrix, matrix.csc and matrix.csr inputs are first 
+#'   transformed into matrix.csr or dgRMatrix formats, which requires small 
+#'   extra computation time.
 #' @param target a response vector for prediction tasks with one value for 
 #'   each of the n rows of \code{data}. For classification, the values 
 #'   correspond to class labels and can be a 1xn matrix, a simple vector or a 
@@ -155,8 +157,8 @@
 #' s=scale(xTrain,center=TRUE,scale=TRUE)
 #' 
 #' # Find the best model with the best cost parameter via 10-fold cross-validations
-#' tryTypes=c(0:7)
-#' tryCosts=c(1000,1,0.001)
+#' tryTypes=c(1:6)
+#' tryCosts=c(1000,0.001)
 #' bestCost=NA
 #' bestAcc=0
 #' bestType=NA
@@ -217,9 +219,6 @@
 #'  # Make prediction
 #'  p=predict(m,xTest,proba=pr,decisionValues=TRUE)
 #' 
-#'  # Display confusion matrix
-#'  res=table(p$predictions,yTest)
-#'  print(res)
 #' }
 #' 
 #' #' #############################################
@@ -242,9 +241,6 @@
 #'  # Make prediction
 #'  p=predict(m,xTest,proba=pr,decisionValues=TRUE)
 #' 
-#'  # Display confusion matrix
-#'  res=table(p$predictions,yTest)
-#'  print(res)
 #' }
 #' 
 #' #############################################
@@ -260,7 +256,7 @@
 #' s=scale(xTrain,center=TRUE,scale=TRUE)
 #' 
 #' # Estimate MSE in cross-vaidation on a train set
-#' MSECross=LiblineaR(data = s, target = yTrain, type = 13, cross = 10, svr_eps=.01)
+#' MSECross=LiblineaR(data = s, target = yTrain, type = 13, cross = 5, svr_eps=.01)
 #' 
 #' # Build the model
 #' m=LiblineaR(data = s, target = yTrain, type = 13, cross=0, svr_eps=.01)
@@ -291,21 +287,28 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 	# <Arg preparation>
   sparse=FALSE
   sparse2=FALSE
-  if(sparse <- inherits(data, "matrix.csr")){
+  if(sparse <- (inherits(data, "matrix.csr") | inherits(data, "matrix.csc") | inherits(data, "matrix.coo")) ){
     if(requireNamespace("SparseM",quietly=TRUE)){
   		# trying to handle the sparse matrix case with SparseM package
+      if(inherits(data,"matrix.csc") | inherits(data,"matrix.coo")){
+        # Transform column-based sparse matrix format and coordinate-based sparse 
+        # matrix format of class matrix.csc or matrix.coo into row-based sparse
+        # matrix format of class matrix.csr.
+        data<-SparseM::as.matrix.csr(data)
+      }
 	  	data = SparseM::t(SparseM::t(data)) # make sure column index are sorted
 		  n = data@dimension[1]
 		  p = data@dimension[2]
     } else {
       stop("data inherits from 'matrix.csr', but 'SparseM' package is not available. Cannot proceed further. You could either use non-sparse matrix, install SparseM package or use sparse matrices based on Matrix package, also supported by LiblineaR.")
     }
-  } else if(sparse2 <- (inherits(data, "dgCMatrix") | inherits(data,"dgRMatrix"))) {
+  } else if(sparse2 <- (inherits(data, "dgCMatrix") | inherits(data,"dgRMatrix") | inherits(data, "dgTMatrix"))) {
     if(requireNamespace("Matrix",quietly=TRUE)){
       # trying to handle the sparse matrix case with Matrix package
-      if(inherits(data,"dgCMatrix")){
-        # Transform column-based sparse matrix format of class dgCMatrix into 
-        # row-based sparse matrix format of class dgRMatrix.
+      if(inherits(data,"dgCMatrix") | inherits(data,"dgTMatrix")){
+        # Transform column-based sparse matrix format and triplets-based sparse 
+        # matrix format of class dgCMatrix or dgTMatrix into row-based sparse 
+        # matrix format of class dgRMatrix.
         data<-as(as(data,"matrix"),"dgRMatrix")
       }
       data = Matrix::t(Matrix::t(data)) # make sure column index are sorted

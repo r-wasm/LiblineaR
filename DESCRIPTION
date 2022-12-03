@@ -1,16 +1,16 @@
 Encoding: UTF-8
 Package: LiblineaR
 Title: Linear Predictive Models Based on the LIBLINEAR C/C++ Library
-Version: 2.10-12
-Date: 2021-03-01
+Version: 2.10-22
+Date: 2022-11-28
 Authors@R: c(
         person("Thibault","Helleputte",email="thibault.helleputte@dnalytics.com",role=c("cre","aut","cph")),
         person("Jérôme","Paul",email="jerome.paul@dnalytics.com",role=c("aut")),
         person("Pierre","Gramme",role=c("aut")) )
 Description: A wrapper around the LIBLINEAR C/C++ library for machine
         learning (available at
-        <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>). LIBLINEAR is a
-        simple library for solving large-scale regularized linear
+        <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>). LIBLINEAR is
+        a simple library for solving large-scale regularized linear
         classification and regression. It currently supports
         L2-regularized classification (such as logistic regression,
         L2-loss linear SVM and L1-loss linear SVM) as well as
@@ -26,13 +26,13 @@ License: GPL-2
 LazyLoad: yes
 Suggests: SparseM, Matrix
 Imports: methods
-URL: <https://www.dnalytics.com/software/liblinear/>
+URL: <https://dnalytics.com/software/liblinear/>
 RoxygenNote: 7.1.1
 NeedsCompilation: yes
-Packaged: 2021-03-01 21:34:36 UTC; thibault
+Packaged: 2022-12-02 10:02:54 UTC; thibault
 Author: Thibault Helleputte [cre, aut, cph],
   Jérôme Paul [aut],
   Pierre Gramme [aut]
 Maintainer: Thibault Helleputte <thibault.helleputte@dnalytics.com>
 Repository: CRAN
-Date/Publication: 2021-03-02 06:20:13 UTC
+Date/Publication: 2022-12-03 08:22:30 UTC
