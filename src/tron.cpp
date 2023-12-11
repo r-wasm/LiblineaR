@@ -30,7 +30,7 @@ extern int dscal_(int *, double *, double *, int *);
 
 static void default_print(const char *buf)
 {
-	Rprintf(buf);
+	Rprintf("%s",buf);
 }
 
 void TRON::info(const char *fmt,...)

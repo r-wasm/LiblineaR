@@ -28,7 +28,7 @@ template <class S, class T> static inline void clone(T*& dst, S* src, int n)
 
 static void print_string_stdout(const char *s)
 {
-	Rprintf(s);
+	Rprintf("%s",s);
 }
 static void print_null(const char *s) {}
 
